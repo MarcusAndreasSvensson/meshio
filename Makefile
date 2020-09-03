@@ -18,7 +18,7 @@ upload: clean
 	# python3 setup.py sdist bdist_wheel
 	# https://stackoverflow.com/a/58756491/353337
 	python3 -m pep517.build --source --binary .
-	twine upload dist/*
+	# twine upload dist/*
 
 publish: tag upload
 
