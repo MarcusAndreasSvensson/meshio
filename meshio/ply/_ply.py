@@ -91,6 +91,9 @@ def read_buffer(f):
         endianness = "<"
 
     line = _fast_forward(f)
+    # Added by Marcus
+    if line == "obj_info vtkPolyData points and polygons: vtk4.0":
+        line = _fast_forward(f)
     m = re.match("element vertex (\\d+)", line)
     num_verts = int(m.groups()[0])
 
