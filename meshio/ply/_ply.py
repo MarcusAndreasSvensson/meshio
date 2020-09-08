@@ -253,7 +253,7 @@ def _read_ascii(
             n = []
             i = 0
             # cell_data = {}
-            for name, dtype in zip(["tetrahedron"], [("uchar", "int")]):
+            for name, dtype in zip(["tetra"], [("uchar", "int")]):
                 n = int(data[i])
                 # print("n # ", n)
                 if name != "vertex_indices":
@@ -264,7 +264,7 @@ def _read_ascii(
                 # TODO FIX THIS FOR LOOP (cell_data_names, cell_dtypes)
 
         i = 0
-        for name, dtype in zip(["tetrahedron"], [("uchar", "int")]):
+        for name, dtype in zip(["tetra"], [("uchar", "int")]):
             n = int(data[i])
             dtype = ply_to_numpy_dtype[dtype[1]]
             data = [dtype(data[j]) for j in range(i + 1, i + n + 1)]
