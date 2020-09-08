@@ -279,8 +279,7 @@ def _read_ascii(
         for (n, data) in polygons.items()
     ]
 
-    return verts, cell_data
-    # return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
 
 
 def _read_binary(
@@ -357,8 +356,7 @@ def _read_binary(
 
     cells = cell_data.pop("vertex_indices", [])
 
-    return verts, cell_data
-    # return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
 
 
 def _read_binary_list(buffer, count_dtype, data_dtype, num_cells, endianness):

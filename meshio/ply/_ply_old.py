@@ -76,7 +76,7 @@ def read_buffer(f):
     # assert that the first line reads `ply`
     line = f.readline().decode("utf-8").strip()
     if line != "ply":
-        raise ReadError("1")
+        raise ReadError()
 
     line = _fast_forward(f)
     if line == "format ascii 1.0":
@@ -86,11 +86,14 @@ def read_buffer(f):
         endianness = ">"
     else:
         if line != "format binary_little_endian 1.0":
-            raise ReadError("2")
+            raise ReadError()
         is_binary = True
         endianness = "<"
 
     line = _fast_forward(f)
+    # Added by Marcus
+    if line == "obj_info vtkPolyData points and polygons: vtk4.0":
+        line = _fast_forward(f)
     m = re.match("element vertex (\\d+)", line)
     num_verts = int(m.groups()[0])
 
@@ -104,42 +107,28 @@ def read_buffer(f):
         point_data_names.append(m.groups()[1])
         line = _fast_forward(f)
 
-    cell_data_names = []
-    cell_data_dtypes = []
-
     m = re.match("element face (\\d+)", line)
     num_cells = int(m.groups()[0])
-    # cell_data_names.append("triangle")
-    # cell_data_dtypes.append(("char", point_data_formats[0]))
 
     assert num_cells >= 0
 
     # read property lists
     line = _fast_forward(f)
+    cell_data_names = []
+    cell_data_dtypes = []
     # read cell data
-    while line[:8] == "property" or line[:7] == "element":
+    while line[:8] == "property":
         if line[:13] == "property list":
             m = re.match("property list (.+) (.+) (.+)", line)
             cell_data_dtypes.append(tuple(m.groups()[:-1]))
-            # cell_data_names.append(m.groups()[-1])
-        # ADDED BY MARCUS SVENSSON
-        elif line[:7] == "element":
-            m = re.match("element voxel (\\d+)", line)
-            num_voxels = int(m.groups()[0])
-            # cell_data_names.append("tetrahedron")
-            # cell_data_dtypes.append(("char", point_data_formats[0]))
         else:
             m = re.match("property (.+) (.+)", line)
             cell_data_dtypes.append(m.groups()[0])
-            cell_data_names.append(m.groups()[-1])
+        cell_data_names.append(m.groups()[-1])
         line = _fast_forward(f)
-        # BUG problem with cell_data_names
-
-    # print("cell_data_names #", cell_data_names)
-    # print("cell_data_dtypes #", cell_data_dtypes)
 
     if line != "end_header":
-        raise ReadError("3")
+        raise ReadError()
 
     if is_binary:
         mesh = _read_binary(
@@ -149,7 +138,6 @@ def read_buffer(f):
             point_data_formats,
             num_verts,
             num_cells,
-            num_voxels,
             cell_data_names,
             cell_data_dtypes,
         )
@@ -160,7 +148,6 @@ def read_buffer(f):
             point_data_formats,
             num_verts,
             num_cells,
-            num_voxels,
             cell_data_names,
             cell_data_dtypes,
         )
@@ -174,7 +161,6 @@ def _read_ascii(
     point_data_formats,
     num_verts,
     num_cells,
-    num_voxels,
     cell_data_names,
     cell_dtypes,
 ):
@@ -213,58 +199,19 @@ def _read_ascii(
     for k in range(num_cells):
         line = f.readline().decode("utf-8").strip()
         data = line.split()
-        # print("data", data)
         if k == 0:
             # initialize the cell data arrays
             n = []
             i = 0
             cell_data = {}
-            # for name, dtype in zip(cell_data_names, cell_dtypes):
-            for name, dtype in zip(["triangle"], [("uchar", "int")]):
+            for name, dtype in zip(cell_data_names, cell_dtypes):
                 n = int(data[i])
-                # print("n # ", n)
                 if name != "vertex_indices":
                     cell_data[name] = []
-                    # print("NOT VERTEX IDX")
                 i += n + 1
-                # print(name)
-                # TODO FIX THIS FOR LOOP (cell_data_names, cell_dtypes)
 
         i = 0
-        # for name, dtype in zip(cell_data_names, cell_dtypes):
-        for name, dtype in zip(["triangle"], [("uchar", "int")]):
-            n = int(data[i])
-            # print("n2", n)
-            # print("dttype", dtype)
-            dtype = ply_to_numpy_dtype[dtype[1]]
-            data = [dtype(data[j]) for j in range(i + 1, i + n + 1)]
-            if name == "vertex_indices":
-                polygons[n].append(data)
-            else:
-                cell_data[name].append(data)
-            i += n + 1
-
-    for k in range(num_voxels):
-        line = f.readline().decode("utf-8").strip()
-        data = line.split()
-        # print("data", data)
-        if k == 0:
-            # initialize the cell data arrays
-            n = []
-            i = 0
-            # cell_data = {}
-            for name, dtype in zip(["tetrahedron"], [("uchar", "int")]):
-                n = int(data[i])
-                # print("n # ", n)
-                if name != "vertex_indices":
-                    cell_data[name] = []
-                    # print("NOT VERTEX IDX")
-                i += n + 1
-                # print(name)
-                # TODO FIX THIS FOR LOOP (cell_data_names, cell_dtypes)
-
-        i = 0
-        for name, dtype in zip(["tetrahedron"], [("uchar", "int")]):
+        for name, dtype in zip(cell_data_names, cell_dtypes):
             n = int(data[i])
             dtype = ply_to_numpy_dtype[dtype[1]]
             data = [dtype(data[j]) for j in range(i + 1, i + n + 1)]
@@ -279,8 +226,7 @@ def _read_ascii(
         for (n, data) in polygons.items()
     ]
 
-    return verts, cell_data
-    # return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
 
 
 def _read_binary(
@@ -290,7 +236,6 @@ def _read_binary(
     formats,
     num_verts,
     num_cells,
-    num_voxels,
     cell_data_names,
     cell_data_dtypes,
 ):
@@ -357,8 +302,7 @@ def _read_binary(
 
     cells = cell_data.pop("vertex_indices", [])
 
-    return verts, cell_data
-    # return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
 
 
 def _read_binary_list(buffer, count_dtype, data_dtype, num_cells, endianness):
@@ -461,9 +405,19 @@ def write(filename, mesh, binary=True):  # noqa: C901
         for k in range(mesh.points.shape[1]):
             type_name = type_name_table[mesh.points.dtype]
             fh.write("property {} {}\n".format(type_name, dim_names[k]).encode("utf-8"))
+
+        pd = []
         for key, value in mesh.point_data.items():
+            if len(value.shape) > 1:
+                warnings.warn(
+                    "PLY writer doesn't support multidimensional point data yet. Skipping {}.".format(
+                        key
+                    )
+                )
+                continue
             type_name = type_name_table[value.dtype]
             fh.write("property {} {}\n".format(type_name, key).encode("utf-8"))
+            pd.append(value)
 
         num_cells = 0
         for cell_type, c in mesh.cells:
@@ -505,9 +459,7 @@ def write(filename, mesh, binary=True):  # noqa: C901
 
         if binary:
             # points and point_data
-            out = numpy.rec.fromarrays(
-                [coord for coord in mesh.points.T] + list(mesh.point_data.values())
-            )
+            out = numpy.rec.fromarrays([coord for coord in mesh.points.T] + pd)
             fh.write(out.tobytes())
 
             # cells
@@ -529,9 +481,7 @@ def write(filename, mesh, binary=True):  # noqa: C901
             # vertices
             # numpy.savetxt(fh, mesh.points, "%r")  # slower
             # out = numpy.column_stack([mesh.points] + list(mesh.point_data.values()))
-            out = numpy.rec.fromarrays(
-                [coord for coord in mesh.points.T] + list(mesh.point_data.values())
-            )
+            out = numpy.rec.fromarrays([coord for coord in mesh.points.T] + pd)
             fmt = " ".join(["{}"] * len(out[0]))
             out = "\n".join([fmt.format(*row) for row in out]) + "\n"
             fh.write(out.encode("utf-8"))
