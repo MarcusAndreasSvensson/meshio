@@ -48,7 +48,11 @@ def read(filename, **kwargs):
             line += 4
 
             # n_tags = content[line]
-            n_tags = _read_commented_int(line, content)
+            try:
+                n_tags = _read_commented_int(line, content)
+            except:
+                line += 1
+                n_tags = _read_commented_int(line, content)
             line += 2
             for i in range(n_tags):
                 line += 1
