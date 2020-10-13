@@ -142,6 +142,8 @@ def read_buffer(f):
         raise ReadError("3")
 
     if is_binary:
+        num_voxels = 666
+        cell_data_names
         mesh = _read_binary(
             f,
             endianness,
