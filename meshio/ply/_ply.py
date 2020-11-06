@@ -320,7 +320,18 @@ def _read_binary(
     point_data = numpy.frombuffer(
         f.read(num_verts * numpy.dtype(dtype).itemsize), dtype=dtype
     )
-    verts = numpy.column_stack([point_data["x"], point_data["y"], point_data["z"]])
+    try:
+        verts = numpy.column_stack([point_data["x"], point_data["y"], point_data["z"]])
+    except:
+        print("WARNING: no field of name z, padding with zeros")
+        point_data_names.append("z")
+        formats.append("double")
+        dtype = [
+            (name, endianness + ply_to_numpy_dtype_string[fmt])
+            for name, fmt in zip(point_data_names, formats)
+        ]
+        verts = numpy.column_stack([point_data["x"], point_data["y"], numpy.zeros(shape=[point_data.shape[0]])])
+
     point_data = {
         name: point_data[name]
         for name in point_data_names
