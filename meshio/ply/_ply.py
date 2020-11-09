@@ -371,10 +371,11 @@ def _read_binary(
         buffer_position += buffer_increment
 
     cells = cell_data.pop("vertex_indices", [])
+    cells = cell_data.pop("triangle", [])
 
-    return verts, cell_data
-    # mesh =  Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
-    # return mesh
+    # return verts, cell_data
+    mesh =  Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    return mesh
 
 
 def _read_binary_list(buffer, count_dtype, data_dtype, num_cells, endianness):
