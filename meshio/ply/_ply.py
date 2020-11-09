@@ -92,6 +92,7 @@ def read_buffer(f):
 
     line = _fast_forward(f)
     m = re.match("element vertex (\\d+)", line)
+    # TODO may not work
     num_verts = int(m.groups()[0])
 
     # read point data
@@ -143,7 +144,7 @@ def read_buffer(f):
 
     if is_binary:
         num_voxels = 666
-        cell_data_names
+        cell_data_names.append("triangle")
         mesh = _read_binary(
             f,
             endianness,
@@ -323,6 +324,7 @@ def _read_binary(
     try:
         verts = numpy.column_stack([point_data["x"], point_data["y"], point_data["z"]])
     except:
+        # For the case of no Z coords
         print("WARNING: no field of name z, padding with zeros")
         point_data_names.append("z")
         formats.append("double")
@@ -371,7 +373,8 @@ def _read_binary(
     cells = cell_data.pop("vertex_indices", [])
 
     return verts, cell_data
-    # return Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    # mesh =  Mesh(verts, cells, point_data=point_data, cell_data=cell_data)
+    # return mesh
 
 
 def _read_binary_list(buffer, count_dtype, data_dtype, num_cells, endianness):
